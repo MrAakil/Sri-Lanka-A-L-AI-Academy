@@ -61,7 +61,7 @@ export const authApi = {
 
 // Chat API
 export const chatApi = {
-  query: (data: { query: string; chapter?: string; topic?: string; paper_type?: string; year?: number }) => 
+  query: (data: { query: string; chapter?: string; topic?: string; paper_type?: string; year?: number; medium?: string }) => 
     request("/chat/query", { method: "POST", body: JSON.stringify(data) }),
 };
 
@@ -75,9 +75,9 @@ export const solverApi = {
 
 // Quiz API
 export const quizApi = {
-  generate: (data: { chapter: string; difficulty: string; format: string; count?: number }) => 
+  generate: (data: { chapter: string; difficulty: string; format: string; count?: number; medium?: string }) => 
     request("/quiz/generate", { method: "POST", body: JSON.stringify(data) }),
-  submit: (data: { quiz_id: number; answers: any[] }) => 
+  submit: (data: { quiz_id: number; answers: any[]; medium?: string }) => 
     request("/quiz/submit", { method: "POST", body: JSON.stringify(data) }),
 };
 
