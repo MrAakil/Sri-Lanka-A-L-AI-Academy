@@ -6,9 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Atom, MessageSquare, Image as ImageIcon, Award, BarChart2, BookOpen, 
-  Bookmark, Calendar, Settings, Search, Bell, Moon, Sun, Globe, LogOut, CheckCircle 
+  Bookmark, Calendar, Settings, Search, Bell, Moon, Sun, Globe, LogOut, 
+  CheckCircle, Eye, Type, Keyboard, X 
 } from "lucide-react";
-import { getUserStats, rewardXP, type UserStats, BADGES_LIST } from "@/lib/gamification";
+import { getUserStats, type UserStats, BADGES_LIST } from "@/lib/gamification";
 import { translations, type Language } from "@/lib/translations";
 
 interface WorkspaceLayoutProps {
@@ -24,6 +25,11 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   
+  // Accessibility States
+  const [highContrast, setHighContrast] = useState(false);
+  const [fontScale, setFontScale] = useState(1.0); // 1.0, 1.15, 1.30
+  const [a11yAnnouncement, setA11yAnnouncement] = useState("");
+
   // Custom toast alerts
   const [levelUpAlert, setLevelUpAlert] = useState<number | null>(null);
   const [badgeAlert, setBadgeAlert] = useState<string | null>(null);
@@ -41,6 +47,14 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
         setTheme(savedTheme);
         document.documentElement.classList.toggle("light-mode", savedTheme === "light");
       }
+
+      const savedContrast = localStorage.getItem("highContrast") === "true";
+      setHighContrast(savedContrast);
+      document.documentElement.classList.toggle("high-contrast", savedContrast);
+
+      const savedScale = parseFloat(localStorage.getItem("fontScale") || "1.0");
+      setFontScale(savedScale);
+      document.documentElement.style.setProperty("--font-scale", savedScale.toString());
     }
 
     const handleGamification = () => setStats(getUserStats());
@@ -52,6 +66,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     const handleLevelUp = (e: Event) => {
       const customEvent = e as CustomEvent;
       setLevelUpAlert(customEvent.detail.level);
+      announceToScreenReader(`Level up! You reached level ${customEvent.detail.level}`);
       setTimeout(() => setLevelUpAlert(null), 5000);
     };
 
@@ -60,6 +75,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
       const b = BADGES_LIST.find(x => x.id === customEvent.detail.badgeId);
       if (b) {
         setBadgeAlert(`${b.icon} Unlocked: ${b.title}`);
+        announceToScreenReader(`Achievement unlocked! ${b.title}: ${b.desc}`);
         setTimeout(() => setBadgeAlert(null), 5000);
       }
     };
@@ -77,10 +93,18 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     };
   }, []);
 
+
+
+  const announceToScreenReader = (msg: string) => {
+    setA11yAnnouncement(msg);
+    setTimeout(() => setA11yAnnouncement(""), 2000);
+  };
+
   const handleLangChange = (newLang: Language) => {
     setLang(newLang);
     localStorage.setItem("lang", newLang);
     window.dispatchEvent(new Event("languageChange"));
+    announceToScreenReader(`Language changed to ${newLang.toUpperCase()}`);
   };
 
   const toggleTheme = () => {
@@ -88,6 +112,23 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     setTheme(nextTheme);
     localStorage.setItem("theme", nextTheme);
     document.documentElement.classList.toggle("light-mode", nextTheme === "light");
+    announceToScreenReader(`Theme changed to ${nextTheme} mode`);
+  };
+
+  const toggleHighContrast = () => {
+    const nextContrast = !highContrast;
+    setHighContrast(nextContrast);
+    localStorage.setItem("highContrast", nextContrast ? "true" : "false");
+    document.documentElement.classList.toggle("high-contrast", nextContrast);
+    announceToScreenReader(nextContrast ? "High contrast mode enabled" : "High contrast mode disabled");
+  };
+
+  const changeFontScale = (scale: number) => {
+    setFontScale(scale);
+    localStorage.setItem("fontScale", scale.toString());
+    document.documentElement.style.setProperty("--font-scale", scale.toString());
+    const pct = Math.round(scale * 100);
+    announceToScreenReader(`Font size adjusted to ${pct} percent`);
   };
 
   const handleLogout = () => {
@@ -116,6 +157,16 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   return (
     <div className="min-h-screen flex text-slate-100 bg-[#050508] relative">
       
+      {/* Accessibility Skip Navigation Link */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
+      {/* Screen Reader Live Announcement Output */}
+      <div className="visually-hidden" aria-live="polite" aria-atomic="true">
+        {a11yAnnouncement}
+      </div>
+      
       {/* Side Navigation panel */}
       <aside className="w-64 border-r border-white/5 bg-black/25 backdrop-blur-xl flex flex-col justify-between p-5 hidden md:flex shrink-0 z-30">
         <div className="flex flex-col gap-8 w-full">
@@ -130,7 +181,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
             <div className="p-4 rounded-2xl glass-panel relative overflow-hidden bg-gradient-to-br from-blue-950/10 to-purple-950/10 border-blue-500/10">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold tracking-wider uppercase text-blue-400">
-                  {lang === "en" ? "Level" : lang === "si" ? "මට්ටම" : "நிலை"} {stats.level}
+                  {lang === "en" ? "Level" : lang === "si" ? "මට්ටම" : "මට්ටම"} {stats.level}
                 </span>
                 <span className="text-[10px] text-gray-500 font-bold">🔥 {stats.streak} {lang === "en" ? "Days" : lang === "si" ? "දින" : "நாட்கள்"}</span>
               </div>
@@ -209,6 +260,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
                 value={lang} 
                 onChange={(e) => handleLangChange(e.target.value as Language)}
                 className="bg-transparent text-gray-400 text-xs hover:text-white focus:outline-none transition-all cursor-pointer font-medium"
+                aria-label="Language selection"
               >
                 <option value="en" className="bg-[#0c0c14] text-white">EN</option>
                 <option value="si" className="bg-[#0c0c14] text-white">සිං</option>
@@ -216,11 +268,52 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
               </select>
             </div>
 
+            {/* High Contrast Mode Toggle */}
+            <button 
+              onClick={toggleHighContrast}
+              className={`p-2 rounded-lg border transition-all ${highContrast ? "bg-cyan-600 border-cyan-500 text-white" : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"}`}
+              title="Toggle High Contrast Option"
+              aria-label="Toggle High Contrast Option"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Font Sizer Controls */}
+            <div className="flex items-center rounded-lg bg-white/5 border border-white/5 p-0.5">
+              <button 
+                onClick={() => changeFontScale(1.0)}
+                className={`px-2 py-1 rounded text-[9px] font-bold uppercase transition-all ${fontScale === 1.0 ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+                title="Small text size"
+                aria-label="Small text size"
+              >
+                A
+              </button>
+              <button 
+                onClick={() => changeFontScale(1.15)}
+                className={`px-2 py-1 rounded text-xs font-bold uppercase transition-all ${fontScale === 1.15 ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+                title="Medium text size"
+                aria-label="Medium text size"
+              >
+                A+
+              </button>
+              <button 
+                onClick={() => changeFontScale(1.30)}
+                className={`px-2 py-1 rounded text-sm font-bold uppercase transition-all ${fontScale === 1.30 ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+                title="Large text size"
+                aria-label="Large text size"
+              >
+                A++
+              </button>
+            </div>
+
+
+
             {/* Theme Toggle */}
             <button 
               onClick={toggleTheme}
               className="p-2 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white transition-all hover:bg-white/10"
               title="Toggle Theme"
+              aria-label="Toggle Theme"
             >
               {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
@@ -230,6 +323,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="p-2 rounded-lg bg-white/5 border border-white/5 text-gray-400 hover:text-white transition-all hover:bg-white/10 relative"
+                aria-label="Notifications Panel"
               >
                 <Bell className="w-3.5 h-3.5" />
                 <span className="w-2 h-2 rounded-full bg-purple-500 absolute -right-0.5 -top-0.5 animate-pulse" />
@@ -266,6 +360,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
               <button 
                 onClick={() => setShowProfile(!showProfile)}
                 className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 border border-white/10 flex items-center justify-center font-bold text-xs text-white hover:scale-105 transition-transform"
+                aria-label="Profile options menu"
               >
                 A
               </button>
@@ -297,8 +392,8 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
           </div>
         </header>
 
-        {/* Content viewport area */}
-        <main className="flex-grow overflow-y-auto relative p-6">
+        {/* Content viewport area - Added skip-navigation target ID */}
+        <main id="main-content" tabIndex={-1} className="flex-grow overflow-y-auto relative p-6 focus:outline-none">
           {children}
         </main>
       </div>

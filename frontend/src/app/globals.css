@@ -8,7 +8,77 @@
   --primary-neon: #3b82f6; /* Electric Blue */
   --secondary-neon: #a855f7; /* Violet Glow */
   --accent-neon: #06b6d4; /* Cyan Spark */
+  --font-scale: 1;
 }
+
+html {
+  font-size: calc(100% * var(--font-scale, 1));
+}
+
+/* High Contrast Override Theme */
+.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card-bg: #000000;
+  --card-border: #ffffff;
+  --primary-neon: #00ff00;
+  --secondary-neon: #ffff00;
+  --accent-neon: #00ffff;
+  color-scheme: dark;
+}
+
+.high-contrast * {
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  text-shadow: none !important;
+}
+
+.high-contrast a:hover, .high-contrast button:hover {
+  text-decoration: underline !important;
+}
+
+/* Accessible focus styling */
+:where(a:any-link, button, input, select, textarea):focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 3px;
+}
+
+.high-contrast :where(a:any-link, button, input, select, textarea):focus-visible {
+  outline: 4px solid #ffff00 !important;
+  outline-offset: 4px !important;
+}
+
+/* Screen reader layout helper utilities */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Skip link styles */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 20px;
+  background: #3b82f6;
+  color: #white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 99999;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 15px;
+}
+
 
 @theme inline {
   --color-background: var(--background);
